@@ -6,6 +6,6 @@ For now, it just can handle homework management for students and their class rep
 to run the bot, install the requirements with
 pip install -r requirments.txt
 
-Get a token from botfother and put it in config.py
+Get a token from botfother and put it in config.py also set your user id as sudo in this file
 
 run the bot via python bot.py
