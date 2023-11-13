@@ -218,6 +218,10 @@ async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                   parse_mode='html')
 
 
+async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    return -1
+
+
 GET_DESC, SETUP = range(2)
 
 add_task_conv = ConversationHandler(
@@ -227,7 +231,7 @@ add_task_conv = ConversationHandler(
         SETUP: [MessageHandler(filters.TEXT & ~filters.COMMAND, setup_task),
                 CallbackQueryHandler(setup_task, pattern=r'admin addtask')]
     },
-    fallbacks=[CommandHandler('start', lambda _, __: -1), CommandHandler('cancel', lambda _, __: -1)]
+    fallbacks=[CommandHandler('start', cancel), CommandHandler('cancel', cancel)]
 )
 
 handlers = [
