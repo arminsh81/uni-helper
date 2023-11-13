@@ -50,7 +50,7 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def manage_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
     await check_admin(update)
-    admin_tasks = db.get_admin_tasks(user_id)
+    admin_tasks = db.get_admin_tasks(user_id, user_id == config.SUDO)
     keyboard = [
         [InlineKeyboardButton('ساخت تمرین جدید', callback_data='admin addtask')]
     ]

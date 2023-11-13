@@ -105,6 +105,6 @@ def is_admin(user_id):
     return user_id in admin_list()
 
 
-def get_admin_tasks(admin_id):
-    return Tasks.select().where((Tasks.admin_id == admin_id) & (Tasks.finished == False))
+def get_admin_tasks(admin_id, sudo=False):
+    return Tasks.select().where(((Tasks.admin_id == admin_id) | sudo == True )& (Tasks.finished == False))
 
