@@ -18,11 +18,11 @@ ABOUT_ME = """آرمینم، شایسته👍
 
 دوست دارم که اگه ایده ای به ذهنتون میرسه برای کاربردی تر کردن ربات، بهم بگید =))
 
-کد ناچیز این ربات گوگولی هم اوپن سورسه که میتونید توی گیت‌هاب توش جستار کنید XD
+کد ناچیز این ربات گوگولی هم اوپن سورسه که میتونید توی [گیت‌هاب](https://github.com/arminsh81/uni-helper) توش جستار کنید XD
 
 💻 Dev and Sup: @arminshhhh
-🆔 Channel: @hashtgerd_computer_1400
-🆔 Bot: @hashtgerd_computer_1400_bot"""
+🆔 Channel: @hashtgerd\_computer\_1400
+🆔 Bot: @hashtgerd\_computer_1400\_bot"""
 
 WHAT_TASK = "لطفا یکی از تمرینا رو انتخاب کن."
 WHAT_NAME = """لطفا اسم و فامیلت رو به انگلیسی بفرست."""

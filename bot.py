@@ -2,14 +2,13 @@ import re
 
 from asyncache import cached as asyncached
 from cachetools import TTLCache
-from pyrogram import Client
+# from pyrogram import Client
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, InputMediaDocument, ReplyKeyboardRemove, \
     InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, \
     filters, CallbackQueryHandler
 
 import admin_texts
-import config
 import db
 import texts
 import admin_panel
@@ -38,7 +37,7 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 
 
 async def about_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await update.effective_message.reply_text(texts.ABOUT_ME)
+    await update.effective_message.reply_text(texts.ABOUT_ME, disable_web_page_preview=True, parse_mode='markdown')
 
 
 async def wanna_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
