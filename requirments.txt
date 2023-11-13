@@ -1,0 +1,7 @@
+python-telegram-bot==20.6
+pyrogram==2.0.106
+TgCrypto==1.2.5
+peewee==3.17.0
+cachetools==5.3.2
+asyncache==0.3.1
+pytz==2023.3.post1
