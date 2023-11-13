@@ -22,7 +22,7 @@ ABOUT_ME = """آرمینم، شایسته👍
 
 💻 Dev and Sup: @arminshhhh
 🆔 Channel: @hashtgerd\_computer\_1400
-🆔 Bot: @hashtgerd\_computer_1400\_bot"""
+🆔 Bot: @hashtgerd\_computer\_1400\_bot"""
 
 WHAT_TASK = "لطفا یکی از تمرینا رو انتخاب کن."
 WHAT_NAME = """لطفا اسم و فامیلت رو به انگلیسی بفرست."""
