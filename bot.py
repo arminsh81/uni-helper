@@ -8,12 +8,16 @@ from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, InputMediaDocu
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, \
     filters, CallbackQueryHandler
 import jdatetime
+import locale
 
 import admin_texts
 import db
 import texts
 import admin_panel
 from config import TOKEN
+
+
+locale.setlocale(locale.LC_ALL, jdatetime.FA_LOCALE)
 
 # States for the conversation
 START, CHOOSE_TASK, GET_NAME, GET_FILES, WAIT_FOR_FINISH, CONFIRM_SUBMIT = range(6)
@@ -72,7 +76,7 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data_dict[update.effective_user.id] = {'task_id': task_id}
     task_detail = db.get_task(task_id)
     admin = await get_cached_admin_detail(task_detail.admin_id)
-    jalali_deadline = jdatetime.datetime.fromgregorian(datetime=task_detail.deadline).strftime('''%A %d %b
+    jalali_deadline = jdatetime.datetime.fromgregorian(datetime=task_detail.deadline).strftime('''%A %d %B
 %Y-%m-%d %H:%M''')
     await update.callback_query.answer("حلع")
     await update.effective_message.edit_text(
