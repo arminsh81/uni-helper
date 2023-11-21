@@ -7,6 +7,7 @@ from cachetools import TTLCache
 import datetime
 import config
 import pytz
+import jdatetime
 
 
 ### For Sudo
@@ -79,7 +80,7 @@ def change_deadline_keyboard(inc, task_id):
          InlineKeyboardButton("افزایش" + ("✅" if inc else ""),
                               callback_data=f"admin task deadline increase 0 {task_id}")],
         [InlineKeyboardButton("{} دقیقه".format(i), callback_data="admin task deadline {} {} min {}".format(
-            "increase" if inc else "decrease", i, task_id)) for i in (15, 60, 180)],
+            "increase" if inc else "decrease", i, task_id)) for i in (1, 15, 60, 180)],
         [InlineKeyboardButton("{} روز".format(i), callback_data="admin task deadline {} {} day {}".format(
             "increase" if inc else "decrease", i, task_id)) for i in (1, 7, 30)],
         [InlineKeyboardButton("ثبت و بازگشت", callback_data=f"admin task submitdeadline {task_id}")],
@@ -112,13 +113,16 @@ async def manage_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 await update.callback_query.answer("برای حذف کامل، دوباره گزینه حذف را انتخاب کنید", show_alert=True)
                 return
         case "changedeadline":
+            jalali_deadline = jdatetime.datetime.fromgregorian(datetime=task_detail.deadline).strftime(
+                '%Y-%m-%d %H:%M:%S')
             await update.effective_message.edit_text(
-                admin_texts.TASK_DEADLINE.format(task_detail.task_name, task_detail.deadline),
+                admin_texts.TASK_DEADLINE.format(task_detail.task_name, jalali_deadline),
                 reply_markup=change_deadline_keyboard(inc=False, task_id=task_id))
             return
         case "deadline":
-            msg_datetime = datetime.datetime.strptime(update.effective_message.text.split("\n")[-1],
-                                                      "%Y-%m-%d %H:%M:%S")
+            msg_jalali_datetime = jdatetime.datetime.strptime(update.effective_message.text.split("\n")[-1],
+                                                              "%Y-%m-%d %H:%M:%S")
+            msg_datetime = msg_jalali_datetime.togregorian()
             if data[5] == "min":
                 timedelta = datetime.timedelta(minutes=int(data[4]))
             elif data[5] == "day":
@@ -131,21 +135,25 @@ async def manage_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
             else:
                 new_deadline = msg_datetime - timedelta
                 inc = False
+            new_jalali_deadline = jdatetime.datetime.fromgregorian(datetime=new_deadline).strftime(
+                '%Y-%m-%d %H:%M:%S')
             await update.effective_message.edit_text(
-                admin_texts.TASK_DEADLINE.format(task_detail.task_name, new_deadline.strftime("%Y-%m-%d %H:%M:%S")),
+                admin_texts.TASK_DEADLINE.format(task_detail.task_name, new_jalali_deadline),
                 reply_markup=change_deadline_keyboard(inc=inc, task_id=task_id))
             await update.callback_query.answer("✅")
             return
         case "submitdeadline":
             msg_datetime = update.effective_message.text.split("\n")[-1]
-            task_detail.change_deadline(msg_datetime)
+            gregorian_deadline = jdatetime.datetime.strptime(msg_datetime, '%Y-%m-%d %H:%M:%S').togregorian()
+            task_detail.change_deadline(gregorian_deadline)
             await update.callback_query.answer("ثبت شد")
     task_detail = db.get_task_admin(task_id)
+    jalali_deadline = jdatetime.datetime.fromgregorian(datetime=task_detail.deadline).strftime('%Y-%m-%d %H:%M:%S')
     msg = admin_texts.TASK_DETAIL.format(
         task_detail.task_name,
         'فعال' if task_detail.active else 'غیرفعال',
         task_detail.desc,
-        task_detail.deadline,
+        jalali_deadline,
         task_detail.size_limit
     )
     keyboard = [
@@ -189,6 +197,7 @@ async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         task_desc = update.effective_message.text_html
         msg = f"{task_name}\n\n{task_desc}"
     data = data.replace('admin addtask ', '')
+    sizelimit, deadline = 0, 0
     for entity in data.split():
         property_, value = entity.split('_')
         match property_:
@@ -197,9 +206,10 @@ async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
             case "deadline":
                 deadline = int(value)
     if "submit" in data:
+        geo_deadline = (datetime.datetime.now(tz=pytz.timezone('Asia/Tehran')) + datetime.timedelta(
+            days=deadline)).strftime("%Y-%m-%d %H:%M:%S")
         db.Tasks.create(task_name=task_name, desc=task_desc, admin_id=update.effective_user.id,
-                        deadline=(datetime.datetime.now(tz=pytz.timezone('Asia/Tehran')) + datetime.timedelta(
-                            days=deadline)).strftime("%Y-%m-%d %H:%M:%S"),
+                        deadline=geo_deadline,
                         size_limit=sizelimit)
         await update.effective_message.edit_text("تمرین {} با موفقیت ذخیره و از هم اکنون فعال شد.".format(task_name))
         return -1

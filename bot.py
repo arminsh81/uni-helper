@@ -7,6 +7,7 @@ from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, InputMediaDocu
     InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, \
     filters, CallbackQueryHandler
+import jdatetime
 
 import admin_texts
 import db
@@ -71,11 +72,13 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     user_data_dict[update.effective_user.id] = {'task_id': task_id}
     task_detail = db.get_task(task_id)
     admin = await get_cached_admin_detail(task_detail.admin_id)
+    jalali_deadline = jdatetime.datetime.fromgregorian(datetime=task_detail.deadline).strftime('''%A %d %b
+%Y-%m-%d %H:%M''')
     await update.callback_query.answer("حلع")
     await update.effective_message.edit_text(
         texts.OK_SELECTED_TASK.format(task_detail.task_name, task_detail.desc, admin.mention_html(),
                                       f"(@{admin.username})" if admin.username else "",
-                                      task_detail.deadline), reply_markup=None, parse_mode='html')
+                                      jalali_deadline), reply_markup=None, parse_mode='html')
     await update.effective_message.reply_text(texts.WHAT_NAME, reply_markup=ReplyKeyboardRemove())
     return GET_FILES
 
@@ -84,7 +87,11 @@ async def get_name(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
 async def get_files(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     name = update.message.text
     if re.match(r"^[A-Za-z]+(?: [A-Za-z]+){1,3}$", name):
-        user_data_dict[update.effective_user.id]['name'] = name.title()
+        user_id = update.effective_user.id
+        if user_id not in user_data_dict:
+            await update.message.reply_text()
+            return -1
+        user_data_dict[user_id]['name'] = name.title()
         await update.message.reply_text(texts.TNX_SEND.format(name), reply_markup=ReplyKeyboardRemove())
     else:
         await update.message.reply_text(texts.PLZ_ENGLISH_NAME)
@@ -97,7 +104,7 @@ async def wait_for_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     files = update.message.photo or update.message.document
     user_data = user_data_dict[update.effective_user.id]
     if update.message.photo:
-        await update.message.reply_text('نات ایمپلنتد یت')
+        await update.message.reply_text('هنوز تبدیل عکس به پی دی اف پشتیبانی نمیشه =(')
         # user_data_dict[update.effective_user.id].setdefault('images', []).append(update.message.photo[-1].file_id)
         # print(user_data_dict)
         # keyboard = [[KeyboardButton('تموم')]]
