@@ -26,7 +26,7 @@ user_data_cache = TTLCache(maxsize=100, ttl=90)
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     keyboard = [
         [KeyboardButton(texts.SEND_TASK)],
-        [KeyboardButton(texts.ABOUT_ME_BUTTON)]
+        [KeyboardButton(texts.ABOUT_ME_BUTTON), KeyboardButton(texts.DONATE_ME_BUTTON)]
     ]
     reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
     msg = texts.START_TEXT
@@ -35,9 +35,15 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(msg, reply_markup=reply_markup)
     return ConversationHandler.END
 
+
 # about me button handler
 async def about_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(texts.ABOUT_ME, disable_web_page_preview=True, parse_mode='markdown')
+
+
+# donate me button handler
+async def donate_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    await update.effective_message.reply_text(texts.DONATE_ME, disable_web_page_preview=True, parse_mode='markdown')
 
 
 # handler when the user wants to cancel the operation
@@ -194,6 +200,7 @@ task_handler = ConversationHandler(
 handlers = [
     task_handler,
     MessageHandler(filters.Regex(f'^{texts.ABOUT_ME_BUTTON}$'), about_me),
+    MessageHandler(filters.Regex(f'^{texts.DONATE_ME_BUTTON}$'), donate_me),
     MessageHandler(filters.ChatType.PRIVATE & ~filters.UpdateType.EDITED, start),
 ]
 [app.add_handler(handler) for handler in admin_panel.handlers]
