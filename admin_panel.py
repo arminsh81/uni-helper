@@ -21,9 +21,11 @@ async def delete_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.delete_admin(new_admin_id)
     await update.effective_message.reply_text(f"Admin {new_admin_id} Deleted")
 
-    ### For Sudo
+
+### For Sudo
 
 
+# checks if the user is still admin, if not delete the admin panel message
 def check_admin(func):
     async def wrapper(update, context):
         if not db.is_admin(update.effective_user.id):
@@ -37,6 +39,7 @@ def check_admin(func):
 
 ### Admins
 
+# sends the admin menu panel
 async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if not db.is_admin(update.effective_user.id):
         await update.effective_message.reply_text(admin_texts.YOU_NO_ADMIN)
@@ -68,6 +71,7 @@ async def manage_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
 finisher = TTLCache(maxsize=10, ttl=10)
 
 
+# generates the keyboard for changing the deadline of pending task
 def change_deadline_keyboard(inc, task_id):
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("کاهش" + ("✅" if not inc else ""),
@@ -83,6 +87,7 @@ def change_deadline_keyboard(inc, task_id):
     ])
 
 
+# handles every setting for the task
 @check_admin
 async def manage_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     data = update.callback_query.data.split()
@@ -225,12 +230,13 @@ async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    update.effective_message.reply_text("عملیات لغو شد")
+    await update.effective_message.reply_text("عملیات لغو شد")
     return -1
 
 
 GET_DESC, SETUP = range(2)
 
+# add task conversation handler
 add_task_conv = ConversationHandler(
     entry_points=[CallbackQueryHandler(add_task, pattern=r'^admin addtask')],
     states={

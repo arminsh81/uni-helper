@@ -22,7 +22,7 @@ user_data_dict = TTLCache(maxsize=512, ttl=1800)
 user_data_cache = TTLCache(maxsize=100, ttl=90)
 
 
-# Your function to start the conversation
+# Start menu
 async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     keyboard = [
         [KeyboardButton(texts.SEND_TASK)],
@@ -35,11 +35,12 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     await update.message.reply_text(msg, reply_markup=reply_markup)
     return ConversationHandler.END
 
-
+# about me button handler
 async def about_me(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(texts.ABOUT_ME, disable_web_page_preview=True, parse_mode='markdown')
 
 
+# handler when the user wants to cancel the operation
 async def wanna_start(update: Update, context: ContextTypes.DEFAULT_TYPE):
     await update.effective_message.reply_text(texts.WANNA_START)
 
@@ -85,7 +86,7 @@ async def get_files(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     return WAIT_FOR_FINISH
 
 
-# Function to handle receiving images
+# Function to handle receiving images or pdfs
 async def wait_for_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
     files = update.message.photo or update.message.document
     user_data = user_data_dict[update.effective_user.id]
@@ -140,7 +141,7 @@ async def confirm_submit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
         return ConversationHandler.END
     task_detail = db.get_task(user_data['task_id'])
     admin = await get_cached_admin_detail(task_detail.admin_id)
-    # Send the submitted images to the admin
+    # Send the submitted pdfs to the admin
     media_chunks = [user_data['pdfs'][i:i + 10] for i in range(0, len(user_data['pdfs']), 10)]
     for media_chunk in media_chunks:
         await context.bot.send_media_group(admin.id,
