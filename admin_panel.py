@@ -21,14 +21,18 @@ async def delete_admin(update: Update, context: ContextTypes.DEFAULT_TYPE):
     db.delete_admin(new_admin_id)
     await update.effective_message.reply_text(f"Admin {new_admin_id} Deleted")
 
+    ### For Sudo
 
-### For Sudo
 
+def check_admin(func):
+    async def wrapper(update, context):
+        if not db.is_admin(update.effective_user.id):
+            await update.effective_message.delete()
+            return
+        else:
+            return await func(update, context)
 
-async def check_admin(update):
-    if not db.is_admin(update.effective_user.id):
-        await update.effective_message.delete()
-        return False
+    return wrapper
 
 
 ### Admins
@@ -47,9 +51,9 @@ async def admin_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
                                                       reply_markup=InlineKeyboardMarkup(keyboard))
 
 
+@check_admin
 async def manage_tasks(update: Update, context: ContextTypes.DEFAULT_TYPE):
     user_id = update.effective_user.id
-    await check_admin(update)
     admin_tasks = db.get_admin_tasks(user_id, user_id == config.SUDO)
     keyboard = [
         [InlineKeyboardButton('ساخت تمرین جدید', callback_data='admin addtask')]
@@ -79,8 +83,8 @@ def change_deadline_keyboard(inc, task_id):
     ])
 
 
+@check_admin
 async def manage_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    await check_admin(update)
     data = update.callback_query.data.split()
     task_id = data[-1]
     action = data[2]
@@ -148,7 +152,8 @@ async def manage_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         [InlineKeyboardButton('بازگشت', callback_data='admin managetasks')]
     ]
 
-    await update.effective_message.edit_text(msg, reply_markup=InlineKeyboardMarkup(keyboard))
+    await update.effective_message.edit_text(msg, reply_markup=InlineKeyboardMarkup(keyboard), parse_mode='html',
+                                             disable_web_page_preview=True)
 
 
 new_task_names = TTLCache(maxsize=100, ttl=600)
@@ -166,10 +171,11 @@ async def get_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return SETUP
 
 
+@check_admin
 async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
     if update.callback_query:
         data = update.callback_query.data
-        msg = update.effective_message.text
+        msg = update.effective_message.text_html
         task_name = msg.splitlines()[0]
         task_desc = "\n".join(update.effective_message.text_html.splitlines()[1:])
     else:
@@ -219,6 +225,7 @@ async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    update.effective_message.reply_text("عملیات لغو شد")
     return -1
 
 
