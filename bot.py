@@ -93,7 +93,7 @@ async def get_files(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
     if re.match(r"^[A-Za-z]+(?: [A-Za-z]+){1,3}$", name):
         user_id = update.effective_user.id
         if user_id not in user_data_dict:
-            await update.message.reply_text()
+            await update.message.reply_text(texts.PLZ_AGAIN)
             return -1
         user_data_dict[user_id]['name'] = name.title()
         await update.message.reply_text(texts.TNX_SEND.format(name), reply_markup=ReplyKeyboardRemove())
