@@ -5,6 +5,7 @@ import db
 import admin_texts
 from cachetools import TTLCache
 import datetime
+import os
 import config
 import pytz
 import jdatetime
@@ -170,6 +171,7 @@ async def manage_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 
 new_task_names = TTLCache(maxsize=100, ttl=600)
+new_task_desc = TTLCache(maxsize=100, ttl=600)
 
 
 async def add_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
@@ -181,6 +183,12 @@ async def get_desc(update: Update, context: ContextTypes.DEFAULT_TYPE):
     task_name = " ".join(update.effective_message.text.splitlines())
     new_task_names[update.effective_user.id] = task_name
     await update.effective_message.reply_text(admin_texts.PLZ_NAME_NEW_TASK_DESC)
+    return GET_SUFFIX
+
+
+async def get_suffix(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    new_task_desc[update.effective_user.id] = update.effective_message.text_html
+    await update.effective_message.reply_text(admin_texts.PLZ_FILE_SUFFIX)
     return SETUP
 
 
@@ -190,12 +198,15 @@ async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         data = update.callback_query.data
         msg = update.effective_message.text_html
         task_name = msg.splitlines()[0]
-        task_desc = "\n".join(update.effective_message.text_html.splitlines()[1:])
+        task_suffix = msg.splitlines()[1]
+        task_desc = "\n".join(update.effective_message.text_html.splitlines()[2:])
     else:
         data = "admin addtask sizelimit_1 deadline_1"
-        task_name = new_task_names[update.effective_user.id]
-        task_desc = update.effective_message.text_html
-        msg = f"{task_name}\n\n{task_desc}"
+        user_id = update.effective_user.id
+        task_name = new_task_names[user_id]
+        task_desc = new_task_desc[user_id]
+        task_suffix = update.effective_message.text
+        msg = f"{task_name}\n{task_suffix}\n{task_desc}"
     data = data.replace('admin addtask ', '')
     sizelimit, deadline = 0, 0
     for entity in data.split():
@@ -209,7 +220,7 @@ async def setup_task(update: Update, context: ContextTypes.DEFAULT_TYPE):
         geo_deadline = (datetime.datetime.now(tz=pytz.timezone('Asia/Tehran')) + datetime.timedelta(
             days=deadline)).strftime("%Y-%m-%d %H:%M:%S")
         db.Tasks.create(task_name=task_name, desc=task_desc, admin_id=update.effective_user.id,
-                        deadline=geo_deadline,
+                        deadline=geo_deadline, file_suffix=task_suffix,
                         size_limit=sizelimit)
         await update.effective_message.edit_text("تمرین {} با موفقیت ذخیره و از هم اکنون فعال شد.".format(task_name))
         return -1
@@ -244,13 +255,14 @@ async def cancel(update: Update, context: ContextTypes.DEFAULT_TYPE):
     return -1
 
 
-GET_DESC, SETUP = range(2)
+GET_DESC, GET_SUFFIX, SETUP = range(3)
 
 # add task conversation handler
 add_task_conv = ConversationHandler(
     entry_points=[CallbackQueryHandler(add_task, pattern=r'^admin addtask')],
     states={
         GET_DESC: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_desc)],
+        GET_SUFFIX: [MessageHandler(filters.TEXT & ~filters.COMMAND, get_suffix)],
         SETUP: [MessageHandler(filters.TEXT & ~filters.COMMAND, setup_task),
                 CallbackQueryHandler(setup_task, pattern=r'admin addtask')]
     },

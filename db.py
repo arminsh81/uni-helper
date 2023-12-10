@@ -14,6 +14,7 @@ class Tasks(Model):
     admin_id = BigIntegerField()
     deadline = DateTimeField()
     size_limit = IntegerField()
+    file_suffix = TextField()
     active = BooleanField(default=True)
     finished = BooleanField(default=False)
 
@@ -47,16 +48,6 @@ class Admins(Model):
 
 db.connect()
 db.create_tables([Tasks, Admins], safe=True)
-
-#
-# Tasks.create(task_name="تستی فصل اول", desc="خداییش خوش خط بنویسید تا شب بفرستید. فایلتونم زیر دو مگ باشه", task_filename="aefeafegewgew", admin_id=660462150,
-#              deadline=(datetime.datetime.now(tz=pytz.timezone('Asia/Tehran')) + datetime.timedelta(
-#                  hours=6)).strftime("%Y-%m-%d %H:%M:%S"), size_limit=2)
-
-# for i in get_tasks():
-#     print(i.deadline)
-#     print(type(i.deadline))
-
 
 get_tasks_cache = TTLCache(maxsize=100, ttl=60)
 

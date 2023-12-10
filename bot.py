@@ -1,21 +1,25 @@
+import os
 import re
 
 from asyncache import cached as asyncached
 from cachetools import TTLCache
-# from pyrogram import Client
+from pyrogram import Client
+from pyrogram.types import InputMediaDocument as pyrogram_InputMediaDocument
+from pyrogram.enums import ParseMode
 from telegram import Update, KeyboardButton, ReplyKeyboardMarkup, InputMediaDocument, ReplyKeyboardRemove, \
     InlineKeyboardButton, InlineKeyboardMarkup, Bot
 from telegram.ext import ApplicationBuilder, CommandHandler, ContextTypes, ConversationHandler, MessageHandler, \
     filters, CallbackQueryHandler
 import jdatetime
 import locale
+import helpers
+import num2fawords
 
 import admin_texts
 import db
 import texts
 import admin_panel
-from config import TOKEN
-
+from config import TOKEN, API_ID, API_HASH
 
 locale.setlocale(locale.LC_ALL, jdatetime.FA_LOCALE)
 
@@ -128,8 +132,10 @@ async def wait_for_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
             user_data.setdefault('pdfs', []).append(document.file_id)
             keyboard = [[KeyboardButton(texts.FINISH)]]
             reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-            await update.message.reply_text(texts.PDF_RECIEVED,
-                                            reply_markup=reply_markup)
+            await update.message.reply_text(texts.PDF_RECIEVED.format(
+                helpers.persian_ordinal_word(len(user_data['pdfs'])) + 'ت'
+            ),
+                reply_markup=reply_markup)
     elif update.message.text == texts.FINISH:
         if not user_data.get('pdfs'):
             await update.effective_message.reply_text(texts.NO_TASK_SENT_YET)
@@ -140,8 +146,11 @@ async def wait_for_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
                 [InputMediaDocument(doc) for doc in media_chunk])
         keyboard = [[KeyboardButton(texts.SUBMIT)]]
         reply_markup = ReplyKeyboardMarkup(keyboard, resize_keyboard=True)
-        await update.message.reply_text(texts.ASK_SUBMIT.format(user_data['name']),
-                                        reply_markup=reply_markup)
+        await update.message.reply_text(
+            texts.ASK_SUBMITS.format(num2fawords.words(len(user_data['pdfs'])), user_data['name']) if len(
+                user_data['pdfs']) > 1 else
+            texts.ASK_SUBMIT.format(user_data['name']),
+            reply_markup=reply_markup)
         return CONFIRM_SUBMIT
     else:
         keyboard = [[KeyboardButton(texts.FINISH)]]
@@ -152,6 +161,7 @@ async def wait_for_finish(update: Update, context: ContextTypes.DEFAULT_TYPE):
 
 # Function to handle confirming the submission
 async def confirm_submit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> int:
+    wait_msg = await update.effective_message.reply_text(texts.WAIT_A_LITTLE)
     user_data = user_data_dict[update.effective_user.id]
     if not user_data:
         await update.effective_message.reply_text(texts.LATE_OK)
@@ -160,20 +170,50 @@ async def confirm_submit(update: Update, context: ContextTypes.DEFAULT_TYPE) -> 
     admin = await get_cached_admin_detail(task_detail.admin_id)
     # Send the submitted pdfs to the admin
     media_chunks = [user_data['pdfs'][i:i + 10] for i in range(0, len(user_data['pdfs']), 10)]
-    for media_chunk in media_chunks:
-        await context.bot.send_media_group(admin.id,
-                                           [InputMediaDocument(doc,
-                                                               caption=admin_texts.TASK_RECIEVED.format(
-                                                                   task_detail.task_name,
-                                                                   update.effective_user.mention_html(),
-                                                                   f"(@{update.effective_user.username})" if
-                                                                   update.effective_user.username else "",
-                                                                   user_data['name'],
-                                                                   len(user_data[
-                                                                           'pdfs'])),
-                                                               parse_mode='html') for doc in
-                                            media_chunk])
-
+    for i, media_chunk in enumerate(media_chunks):
+        try:
+            file_suffix = task_detail.file_suffix
+            file_paths = []
+            for j, doc in enumerate(media_chunk, start=1):
+                await wait_msg.edit_text(texts.WAIT_DOWNLOAD_FILE.format(helpers.persian_ordinal_word(j)))
+                file_paths.append(await pyrogram_app.download_media(doc,
+                                                                    user_data['name'] + ' ' + file_suffix +
+                                                                    # add number if not first file
+                                                                    ('' if (j + (i * 10)) == 1 else f' {j + (i * 10)}')
+                                                                    # add file ext
+                                                                    + '.pdf'))
+            await wait_msg.edit_text(texts.WAIT_UPLOAD_FILE)
+            await pyrogram_app.send_media_group(admin.id, [
+                pyrogram_InputMediaDocument(
+                    file_path,
+                    caption=admin_texts.TASK_RECIEVED.format(
+                        task_detail.task_name,
+                        update.effective_user.mention_html(),
+                        f"(@{update.effective_user.username})" if
+                        update.effective_user.username else "",
+                        user_data['name'],
+                        len(user_data[
+                                'pdfs'])),
+                    parse_mode=ParseMode('html')
+                )
+                for file_path in file_paths
+            ])
+            [os.remove(file_path) for file_path in file_paths]
+        except Exception as e:
+            print(e)
+            await context.bot.send_media_group(admin.id,
+                                               [InputMediaDocument(doc,
+                                                                   caption=admin_texts.TASK_RECIEVED.format(
+                                                                       task_detail.task_name,
+                                                                       update.effective_user.mention_html(),
+                                                                       f"(@{update.effective_user.username})" if
+                                                                       update.effective_user.username else "",
+                                                                       user_data['name'],
+                                                                       len(user_data[
+                                                                               'pdfs'])),
+                                                                   parse_mode='html') for doc in
+                                                media_chunk])
+    await wait_msg.delete()
     await update.effective_message.reply_text(texts.TASK_SENT.format(task_detail.task_name, admin.mention_html()),
                                               parse_mode='html',
                                               reply_markup=ReplyKeyboardRemove())
@@ -217,8 +257,8 @@ handlers = [
 [app.add_handler(handler) for handler in admin_panel.handlers]
 [app.add_handler(handler) for handler in handlers]
 
-# pyrogram_app = Client('bot', api_id=API_ID, api_hash=API_HASH, bot_token=TOKEN, no_updates=True)
-# pyrogram_app.start()
+pyrogram_app = Client('bot', api_id=API_ID, api_hash=API_HASH, bot_token=TOKEN, no_updates=True)
+pyrogram_app.start()
 
-# print('pyro app started')
+print('pyro app started')
 app.run_polling()
